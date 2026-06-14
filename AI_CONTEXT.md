@@ -1,15 +1,11 @@
-# AI Context: Spreetail Clone (Splitwise)
+# AI_CONTEXT.md
 
-This document is the absolute single source of truth for the Spreetail clone application context. It outlines product scope, implementation reasoning, data contracts, technology stack versioning, and build histories.
+This document serves as the absolute source of truth for the Spreetail clone codebase context, containing architecture decisions, specifications, database schemas, API specs, and build history.
 
----
+## Product understanding
+Spreetail is a peer-to-peer expense tracking and debt settlement application designed for groups of users (e.g., roommates, trip companions, coworkers) who share expenditures. The system aggregates peer splits, calculates pairwise obligations, simplifies transactions using a Greedy Debt Minimization algorithm, tracks individual settlements, and enables real-time messaging per expense.
 
-## 1. Product Understanding
-Spreetail is a peer-to-peer expense tracking and debt settlement application designed for groups of users (e.g., roommates, trip companions, coworkers) who share expenditures. The system aggregates peer splits, calculates pairwise obligations, simplifies transactions using an optimization algorithm, tracks individual settlements, and enables real-time messaging per expense.
-
----
-
-## 2. Product Scope
+## Product scope (in scope / out of scope)
 ### In Scope
 - **User Accounts**: Registration, login, and secure token rotation sessions. Initials-based avatar creation.
 - **Group Management**: Group creation, name editing, deletion, member search and instant invitations by email.
@@ -23,19 +19,15 @@ Spreetail is a peer-to-peer expense tracking and debt settlement application des
 - Non-group expenses (all transactions must happen inside a group context).
 - Multi-currency support (exclusively USD).
 - Automated payment gateways (mock/manual settlement logging only).
-- OCR receipt scanning or files attachments.
+- OCR receipt scanning or file attachments.
 - Activity audit logs.
 
----
-
-## 3. User Personas
+## User personas
 1. **The Trip Planner (Alice)**: Creates groups, organizes outings, inputs large expenses, and handles administrative permissions (removing members, deleting groups).
 2. **The Passive Member (Bob)**: Joins trips, gets split values assigned, reviews what he owes, and records settlements when paying back the group.
 3. **The Instant Settler (Carol)**: Prefers paying back instantly at the moment of billing rather than letting debts pile up, utilizing the "Pay Now" option.
 
----
-
-## 4. Core Workflows
+## Core workflows
 ### Auth Flow
 - Registration/Login -> Sign Access JWT (in-memory) & Refresh JWT (secured httpOnly cookie).
 - Refresh Flow -> Rotating old refresh tokens on expiry to issue brand new pairs.
@@ -51,17 +43,13 @@ Spreetail is a peer-to-peer expense tracking and debt settlement application des
 ### Settlement Flow
 - Click "Settle Up" -> Modal retrieves suggested payee/amount -> Select payment method -> Save settlement -> Balances decrease.
 
----
-
-## 5. Implementation Decisions
+## Implementation decisions (with reasoning)
 - **Monorepo Separation**: The backend and frontend are kept in separate folders without root-level hoisted workspaces. This ensures simple deployment configurations on cloud builders like Railway and Vercel.
 - **In-Memory Calculations**: Net standing balances are computed dynamically in-memory on every dashboard request rather than cached in database tables. This preserves raw data integrity and removes desync issues.
 - **Database Decimal Types**: Database splits are stored using PostgreSQL `Decimal(10, 2)` instead of double/floats, preventing binary precision representation issues (e.g., `$9.9999999`).
 - **Standard Layout formless flows**: No standard `<form>` tags are utilized in the UI, avoiding native browser page refreshes or state losses. All triggers utilize React onClick hooks and State fields.
 
----
-
-## 6. Tech Stack
+## Tech stack (with version numbers)
 - **Node.js**: `v18.x` or higher
 - **React**: `v18.3.x` (with Vite client compiler)
 - **Express**: `v4.19.x` (HTTP REST router)
@@ -71,9 +59,7 @@ Spreetail is a peer-to-peer expense tracking and debt settlement application des
 - **Zustand**: `v4.5.x` (Client-side global store)
 - **Tailwind CSS**: `v3.4.x` (Utility-first style engine)
 
----
-
-## 7. Database Schema
+## Database schema (full Prisma schema as-is)
 ```prisma
 generator client {
   provider = "prisma-client-js"
@@ -201,10 +187,7 @@ enum SplitMethod {
 }
 ```
 
----
-
-## 8. API Design (Endpoints Contract)
-
+## API design (full endpoint table)
 | Domain | Method | Endpoint | Description | Auth Required |
 | :--- | :--- | :--- | :--- | :---: |
 | **Auth** | `POST` | `/api/auth/register` | Registers user & issues rotated credentials | No |
@@ -230,9 +213,7 @@ enum SplitMethod {
 | **Chat** | `GET` | `/api/expenses/:id/messages` | Fetches last 100 comments | Yes |
 | | `DELETE`| `/api/messages/:id` | Soft-deletes message (Sender only) | Yes |
 
----
-
-## 9. Frontend Structure
+## Frontend structure (file tree)
 ```
 frontend/src/
 ├── api/
@@ -244,18 +225,7 @@ frontend/src/
 │   └── chat.api.ts
 ├── components/
 │   ├── layout/
-│   │   ├── Navbar.tsx
-│   │   ├── Sidebar.tsx
 │   │   └── ProtectedRoute.tsx
-│   ├── groups/
-│   │   ├── GroupCard.tsx
-│   │   ├── CreateGroupModal.tsx
-│   │   └── MemberList.tsx
-│   ├── expenses/
-│   │   ├── ExpenseRow.tsx
-│   │   ├── CreateExpenseModal.tsx
-│   │   ├── ExpenseDrawer.tsx
-│   │   └── SplitForm.tsx
 │   ├── balances/
 │   │   ├── BalanceSummary.tsx
 │   │   └── SettleUpModal.tsx
@@ -266,35 +236,29 @@ frontend/src/
 │   ├── LoginPage.tsx
 │   ├── RegisterPage.tsx
 │   ├── DashboardPage.tsx
-│   └── GroupDetailPage.tsx
+│   ├── GroupsPage.tsx        # Dynamic dashboard
+│   ├── GroupDetailPage.tsx   # Split tabbed view
+│   └── CreateExpensePage.tsx # Stepper creation wizard
 ├── stores/
 │   ├── authStore.ts          # Zustand token store
-│   ├── groupStore.ts
 │   └── socketStore.ts
 ├── hooks/
-│   ├── useExpenseChat.ts     # Room join logic
-│   └── useGroupSocket.ts
+│   └── useExpenseChat.ts     # Room join logic
 ├── types/
 │   └── index.ts
 └── utils/
     └── balance.utils.ts
 ```
 
----
-
-## 10. Socket.io Events Contract
+## Socket.io events contract
 All WebSocket actions check user membership authorization before executing rooms join commands.
-
 - **`join_expense`** (Client -> Server): Request room join for specific chat thread. Payload: `{ expenseId: string }`
 - **`joined_room`** (Server -> Client): Confirms connection to room. Payload: `{ expenseId: string }`
 - **`send_message`** (Client -> Server): Post comments to backend. Payload: `{ expenseId: string, content: string }`
 - **`new_message`** (Server -> Client): Broadcasts new comments. Payload: `{ id: string, expenseId: string, userId: string, userName: string, content: string | null, createdAt: string }`
 - **`error`** (Server -> Client): Dispatches socket error event. Payload: `{ message: string }`
 
----
-
-## 11. Deployment Plan
-
+## Deployment plan (Railway + Vercel steps)
 ### Backend (Railway)
 1. **GitHub Sync**: Connect repository, set root directory to `/backend`.
 2. **Postgres Setup**: Attach Railway PostgreSQL plugin (auto-maps `DATABASE_URL`).
@@ -307,39 +271,28 @@ All WebSocket actions check user membership authorization before executing rooms
 3. **Environment**: Add `VITE_API_URL` and `VITE_SOCKET_URL` pointing to backend.
 4. **Single Page Routing**: Vercel reads `vercel.json` and configures rewrites to `index.html`.
 
----
-
-## 12. Testing Plan
+## Testing plan
 - **Verification Scenarios**:
   - Test $10 divided 3 ways equally: Assert Payer gets $3.34 and participants get $3.33.
   - Settle Up balance reduction tests (verifying balances dynamically reflect values immediately).
   - Validation blocks on invalid percentage splits (<100% or >100%) and unequal sums.
   - Zero-balance constraint on member deletion (attempt to leave group with debts -> verify error blocks action).
 
----
-
-## 13. Trade-offs Made
+## Trade-offs made
 - **Pairwise Calculations**: Dynamic calculation on load simplifies logic and removes cache desyncs, but might become a bottleneck under extremely high volumes.
 - **Bcrypt**: Kept Bcrypt rather than Argon2 to prevent native code compilations from breaking during automated server building in cloud hosting services.
 
----
-
-## 14. Known Limitations
+## Known limitations
 - Standard pairwise balances do not support automated bank payouts (manually click "Settle up" only).
 - All users must register an email to be added to a group (no virtual/pending members supported).
 
----
-
-## 15. Build Session Log (Phases 1-9 Summary)
+## Build session log (phases 1–8 summary)
 - **Phase 1-2**: Configured PostgreSQL database and ran migrations. Configured Monorepo environment.
 - **Phase 3-4**: Programmed express controllers, user registrations, group actions, and JWT HttpOnly session refreshes.
 - **Phase 5-6**: Programmed split validators, rounding checks, and the Greedy optimization algorithms.
 - **Phase 7-8**: Integrated Socket.io real-time triggers, page loaders, and beautiful Slate & Indigo custom CSS pages.
-- **Phase 9**: Created the "Pay Now vs Pay Later" split workflow, adding transaction-backed settlement creations, payment method badging, and type-cast Decimal fixes.
 
----
-
-## 16. Prompts Used
+## Prompts used (paste each phase prompt)
 Below are the phase prompts executed during the development:
 1. **Compaction Phase 1**: *"Continue. The app is feature complete locally. Now deploy it."*
 2. **Compaction Phase 2**: *"run project"*
@@ -352,3 +305,4 @@ Below are the phase prompts executed during the development:
 9. **Compaction Phase 9**: *"git push in this repo -- https://github.com/Sarthak3131/Spreetail"*
 10. **Compaction Phase 10**: *"Create a dynamic best readme with visual representation of UI and working"*
 11. **Compaction Phase 11**: *"deploy"*
+12. **Compaction Phase 12**: *"create dashboard and group page more unique"*

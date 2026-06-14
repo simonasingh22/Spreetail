@@ -1,21 +1,30 @@
 import axios from 'axios';
 import { useAuthStore } from '../stores/authStore';
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
 const client = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000',
-  withCredentials: true
+  baseURL: API_BASE_URL,
+  withCredentials: true,
+  headers: {
+    'Content-Type': 'application/json'
+  }
 });
 
-// Request Interceptor: Attach bearer access token
-client.interceptors.request.use((config) => {
-  const token = useAuthStore.getState().accessToken;
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+client.interceptors.request.use(
+  (config) => {
+    const token = useAuthStore.getState().accessToken;
+
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
   }
-  return config;
-}, (error) => {
-  return Promise.reject(error);
-});
+);
 
 let isRefreshing = false;
 let failedRequestsQueue: any[] = [];
@@ -28,20 +37,20 @@ const processQueue = (error: any, token: string | null = null) => {
       prom.resolve(token);
     }
   });
+
   failedRequestsQueue = [];
 };
 
-// Response Interceptor: Auto-refresh access token on 401
 client.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
-    
-    // Check if error is 401 and request was not already retried
+
     if (
-      error.response?.status === 401 && 
-      !originalRequest._retry && 
-      originalRequest.url && 
+      error.response?.status === 401 &&
+      originalRequest &&
+      !originalRequest._retry &&
+      originalRequest.url &&
       !originalRequest.url.includes('/auth/refresh')
     ) {
       if (isRefreshing) {
@@ -52,9 +61,7 @@ client.interceptors.response.use(
             originalRequest.headers.Authorization = `Bearer ${token}`;
             return client(originalRequest);
           })
-          .catch((err) => {
-            return Promise.reject(err);
-          });
+          .catch((err) => Promise.reject(err));
       }
 
       originalRequest._retry = true;
@@ -62,29 +69,37 @@ client.interceptors.response.use(
 
       try {
         const refreshResponse = await axios.post(
-          `${client.defaults.baseURL}/api/auth/refresh`,
+          `${API_BASE_URL}/api/auth/refresh`,
           {},
-          { withCredentials: true }
+          {
+            withCredentials: true,
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          }
         );
+
         const { accessToken } = refreshResponse.data.data;
-        
+
         useAuthStore.getState().setAccessToken(accessToken);
-        
+
         processQueue(null, accessToken);
         isRefreshing = false;
-        
+
         originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+
         return client(originalRequest);
       } catch (refreshError) {
         processQueue(refreshError, null);
         isRefreshing = false;
-        
+
         useAuthStore.getState().logout();
         window.location.href = '/login';
+
         return Promise.reject(refreshError);
       }
     }
-    
+
     return Promise.reject(error);
   }
 );

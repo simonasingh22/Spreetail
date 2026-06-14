@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { listGroups, createGroup, getUserGlobalSummary } from '../api/group.api';
 import { useAuthStore } from '../stores/authStore';
-import { Plus, Users, ArrowUpRight, ArrowDownRight, LogOut, Loader2, ArrowRight } from 'lucide-react';
+import { Plus, Users, ArrowUpRight, ArrowDownRight, LogOut, Loader2, ArrowRight, Search, Landmark, Calendar, Sparkles } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 interface GroupListItem {
@@ -20,6 +20,7 @@ export const GroupsPage = () => {
   const [newGroupName, setNewGroupName] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Mouse move track for dynamic glow card gradients
   const [mouseCoords, setMouseCoords] = useState({ x: 0, y: 0 });
@@ -81,41 +82,47 @@ export const GroupsPage = () => {
     navigate('/login');
   };
 
-  return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans pb-16 relative overflow-hidden">
-      {/* Dynamic Animated Ambient Blobs */}
-      <div className="absolute top-[-20%] left-[-10%] w-[500px] h-[500px] bg-indigo-600/10 rounded-full blur-[120px] ambient-blob-1 pointer-events-none" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[600px] h-[600px] bg-indigo-500/5 rounded-full blur-[140px] ambient-blob-2 pointer-events-none" />
-      <div className="absolute top-[40%] right-[20%] w-[350px] h-[350px] bg-emerald-500/5 rounded-full blur-[100px] pointer-events-none" />
+  // Filter groups in client state
+  const filteredGroups = groups.filter((group) =>
+    group.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
-      {/* Header (Glassmorphic) */}
-      <header className="border-b border-slate-900 bg-slate-950/75 backdrop-blur-md sticky top-0 z-40">
-        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
+  return (
+    <div className="min-h-screen bg-[#0d0c0b] text-[#f7f4f0] font-sans pb-20 relative overflow-hidden">
+      {/* Background ambient lighting */}
+      <div className="absolute top-[-25%] left-[-15%] w-[600px] h-[600px] bg-indigo-900/10 rounded-full blur-[140px] ambient-blob-1 pointer-events-none" />
+      <div className="absolute bottom-[-15%] right-[-15%] w-[700px] h-[700px] bg-indigo-955/10 rounded-full blur-[160px] ambient-blob-2 pointer-events-none" />
+
+      {/* Premium Header */}
+      <header className="border-b border-indigo-900/10 bg-[#0d0c0b]/50 backdrop-blur-xl sticky top-0 z-40">
+        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-indigo-750 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/20">
-              <span className="font-extrabold text-lg text-white">S</span>
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-950 to-indigo-900 border border-indigo-850 flex items-center justify-center shadow-lg shadow-indigo-955/50">
+              <span className="font-serif font-black text-xl text-indigo-400">S</span>
             </div>
             <div>
-              <h1 className="font-black text-lg tracking-tight bg-gradient-to-r from-slate-50 to-slate-200 bg-clip-text text-transparent">
+              <h1 className="font-serif font-black text-lg tracking-wider text-[#f7f4f0] leading-none">
                 Spreetail
               </h1>
-              <p className="text-slate-500 text-[10px] uppercase font-bold tracking-wider">Dynamic Expenses</p>
+              <p className="text-indigo-600/80 text-[9px] uppercase font-bold tracking-widest leading-none mt-1.5">
+                Consolidated Ledger
+              </p>
             </div>
           </div>
-          
+
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-3 bg-slate-900/50 border border-slate-800/80 px-3.5 py-1.5 rounded-xl">
-              <div className="w-8 h-8 rounded-lg bg-indigo-950/80 border border-indigo-900/40 text-indigo-400 flex items-center justify-center font-bold text-sm">
+            <div className="flex items-center gap-3 bg-slate-900/30 border border-indigo-900/10 px-4 py-2 rounded-xl">
+              <div className="w-8 h-8 rounded-lg bg-indigo-950 border border-indigo-900/30 text-indigo-455 flex items-center justify-center font-bold text-sm">
                 {user?.name.charAt(0).toUpperCase()}
               </div>
               <div className="text-left hidden sm:block">
-                <p className="text-xs font-bold text-slate-200 leading-none">{user?.name}</p>
-                <p className="text-[10px] text-slate-555 mt-0.5 leading-none">{user?.email}</p>
+                <p className="text-xs font-black text-slate-200 leading-none">{user?.name}</p>
+                <p className="text-[10px] text-slate-500 mt-1 leading-none">{user?.email}</p>
               </div>
             </div>
             <button
               onClick={handleLogout}
-              className="p-2.5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-xl transition-all duration-200 border border-transparent hover:border-rose-500/20 cursor-pointer"
+              className="p-2.5 text-slate-500 hover:text-rose-400 hover:bg-rose-500/5 rounded-xl transition-all duration-200 border border-transparent hover:border-rose-500/10 cursor-pointer"
               title="Logout"
             >
               <LogOut className="w-4.5 h-4.5" />
@@ -124,132 +131,181 @@ export const GroupsPage = () => {
         </div>
       </header>
 
-      {/* Main Container */}
-      <main className="max-w-6xl mx-auto px-4 mt-10 relative z-10">
-        {/* Welcome Section */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
-          <div>
-            <h2 className="text-3xl font-black tracking-tight text-slate-50">Hello, {user?.name}!</h2>
-            <p className="text-slate-400 text-sm mt-1.5">Quickly settle, record, and simplify shared expenses with friends.</p>
-          </div>
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-6 py-3.5 rounded-2xl shadow-lg shadow-indigo-600/15 hover:shadow-indigo-600/25 hover:-translate-y-0.5 active:translate-y-0 transition-all cursor-pointer w-full md:w-auto text-sm"
-          >
-            <Plus className="w-4 h-4 stroke-[3]" />
-            <span>Create New Group</span>
-          </button>
-        </div>
+      {/* Main Grid: Asymmetric Layout */}
+      <main className="max-w-6xl mx-auto px-6 mt-12 relative z-10">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          
+          {/* LEFT COLUMN: The Ledger Desk (5 cols) */}
+          <div className="lg:col-span-5 space-y-8 lg:sticky lg:top-24">
+            {/* Ledger Profile & Balance Slip */}
+            <div className="relative bg-[#141312] border border-indigo-900/15 rounded-3xl p-8 overflow-hidden shadow-2xl">
+              {/* Gold light burst */}
+              <div className="absolute -top-12 -right-12 w-36 h-36 bg-indigo-600/5 rounded-full blur-2xl pointer-events-none" />
+              
+              <div className="space-y-6">
+                <div>
+                  <div className="flex items-center gap-2 text-[10px] text-indigo-400 font-extrabold uppercase tracking-widest">
+                    <Landmark className="w-3.5 h-3.5" />
+                    <span>Personal Balance Statement</span>
+                  </div>
+                  <h2 className="text-3xl font-black tracking-tight text-[#f7f4f0] font-serif mt-2">
+                    {user?.name}
+                  </h2>
+                  <p className="text-slate-500 text-xs mt-1">Spreetail Account Registry</p>
+                </div>
 
-        {/* Global Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-          {/* Net Balance Card */}
-          <div className="bg-slate-900/40 border border-slate-900 rounded-3xl p-6 shadow-xl relative overflow-hidden backdrop-blur-md">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-indigo-500/5 to-indigo-700/5 rounded-full translate-x-8 -translate-y-8" />
-            <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mb-3">Net Balance</p>
-            <p className={`text-4xl font-black ${summary.netBalance > 0 ? 'text-emerald-400' : summary.netBalance < 0 ? 'text-rose-400' : 'text-slate-200'}`}>
-              {summary.netBalance > 0 ? `+$${summary.netBalance.toFixed(2)}` : summary.netBalance < 0 ? `-$${Math.abs(summary.netBalance).toFixed(2)}` : '$0.00'}
-            </p>
-            <div className="mt-3.5 flex items-center gap-1.5 text-[11px] text-slate-500">
-              <span>Dynamic standing across all groups</span>
-            </div>
-          </div>
+                {/* Elegant balance receipt card */}
+                <div className="bg-[#0d0c0b]/80 border border-indigo-900/10 rounded-2xl p-6 space-y-4 shadow-inner">
+                  <div className="border-b border-indigo-900/10 pb-4">
+                    <p className="text-slate-500 text-[9px] font-bold uppercase tracking-widest">Net Standing Balance</p>
+                    <p className={`text-4xl font-serif font-black tracking-tight mt-1 ${
+                      summary.netBalance > 0 ? 'text-emerald-400' : summary.netBalance < 0 ? 'text-rose-400' : 'text-[#f7f4f0]'
+                    }`}>
+                      {summary.netBalance > 0 ? `+$${summary.netBalance.toFixed(2)}` : summary.netBalance < 0 ? `-$${Math.abs(summary.netBalance).toFixed(2)}` : '$0.00'}
+                    </p>
+                  </div>
 
-          {/* Owed Card */}
-          <div className="bg-slate-900/40 border border-slate-900 rounded-3xl p-6 shadow-xl relative overflow-hidden backdrop-blur-md">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-full translate-x-8 -translate-y-8" />
-            <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mb-3">You are owed</p>
-            <div className="flex items-baseline gap-2">
-              <ArrowUpRight className="w-5 h-5 text-emerald-400 self-center" />
-              <p className="text-4xl font-black text-emerald-400">${summary.totalOwed.toFixed(2)}</p>
-            </div>
-            <p className="text-[11px] text-slate-500 mt-3.5">Receivable balances from group members</p>
-          </div>
-
-          {/* Owe Card */}
-          <div className="bg-slate-900/40 border border-slate-900 rounded-3xl p-6 shadow-xl relative overflow-hidden backdrop-blur-md">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-rose-500/5 rounded-full translate-x-8 -translate-y-8" />
-            <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mb-3">You owe</p>
-            <div className="flex items-baseline gap-2">
-              <ArrowDownRight className="w-5 h-5 text-rose-400 self-center" />
-              <p className="text-4xl font-black text-rose-400">${summary.totalOwedTo.toFixed(2)}</p>
-            </div>
-            <p className="text-[11px] text-slate-500 mt-3.5">Pending settlements to pay back</p>
-          </div>
-        </div>
-
-        {/* Groups List Section */}
-        <div className="mb-6">
-          <h3 className="text-lg font-black text-slate-100 mb-6 flex items-center gap-2">
-            <Users className="w-5 h-5 text-indigo-400" />
-            <span>Active Groups ({groups.length})</span>
-          </h3>
-
-          {isLoading ? (
-            <div className="flex flex-col items-center justify-center py-24 bg-slate-900/20 border border-slate-900 rounded-3xl backdrop-blur-sm">
-              <Loader2 className="w-8 h-8 animate-spin text-indigo-500 mb-3" />
-              <p className="text-slate-550 text-xs uppercase font-bold tracking-wider">Loading your groups...</p>
-            </div>
-          ) : groups.length === 0 ? (
-            <div className="text-center py-20 bg-slate-900/10 border border-dashed border-slate-800 rounded-3xl backdrop-blur-sm px-6">
-              <Users className="w-12 h-12 text-slate-700 mx-auto mb-4" />
-              <h4 className="text-slate-200 font-bold text-lg">No groups yet</h4>
-              <p className="text-slate-500 text-xs max-w-sm mx-auto mt-2 mb-6 leading-relaxed">
-                Log a group for trips, split dinners, or shared room expenses. You can add members instantly by email.
-              </p>
-              <button
-                onClick={() => setIsModalOpen(true)}
-                className="inline-flex items-center gap-2 bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 border border-indigo-500/20 font-bold px-5 py-3 rounded-2xl transition-all cursor-pointer text-xs"
-              >
-                <Plus className="w-4 h-4 stroke-[3]" />
-                <span>Create Group</span>
-              </button>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              {groups.map((group) => (
-                <div
-                  key={group.id}
-                  onClick={() => navigate(`/groups/${group.id}`)}
-                  onMouseMove={handleMouseMove}
-                  style={{
-                    // Pass coordinates to CSS custom properties for hover glow radial effects
-                    // We cast coords object properly
-                    '--mouse-x': `${mouseCoords.x}px`,
-                    '--mouse-y': `${mouseCoords.y}px`
-                  } as React.CSSProperties}
-                  className="premium-glow-card rounded-2xl p-6 flex justify-between items-center group cursor-pointer"
-                >
-                  <div className="flex items-center gap-5 relative z-10">
-                    <div className="w-12 h-12 bg-indigo-950/80 border border-indigo-900/30 text-indigo-400 rounded-xl flex items-center justify-center font-extrabold text-lg transition-transform group-hover:scale-105 duration-200 shadow-inner">
-                      {group.name.charAt(0).toUpperCase()}
+                  <div className="grid grid-cols-2 gap-4 text-xs">
+                    <div>
+                      <p className="text-slate-500 text-[8px] font-bold uppercase tracking-widest flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                        <span>Owed to you</span>
+                      </p>
+                      <p className="font-serif font-bold text-sm text-emerald-400 mt-1">
+                        +${summary.totalOwed.toFixed(2)}
+                      </p>
                     </div>
                     <div>
-                      <h4 className="font-extrabold text-slate-100 group-hover:text-indigo-400 transition-colors text-base">
-                        {group.name}
-                      </h4>
-                      <p className="text-slate-500 text-[11px] flex items-center gap-1.5 mt-1 font-semibold">
-                        <Users className="w-3.5 h-3.5" />
-                        <span>{group.memberCount} member{group.memberCount !== 1 ? 's' : ''}</span>
-                        <span>•</span>
-                        <span className="text-slate-400 bg-slate-800/80 border border-slate-700/30 px-2 py-0.5 rounded text-[9px] uppercase font-bold tracking-wide">
-                          {group.role}
-                        </span>
+                      <p className="text-slate-500 text-[8px] font-bold uppercase tracking-widest flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+                        <span>You owe</span>
+                      </p>
+                      <p className="font-serif font-bold text-sm text-rose-400 mt-1">
+                        -${summary.totalOwedTo.toFixed(2)}
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 text-slate-500 group-hover:text-indigo-400 transition-colors duration-200">
-                    <span className="text-[10px] font-semibold hidden sm:inline">Open</span>
-                    <ArrowRight className="w-4 h-4 transform group-hover:translate-x-1 transition-transform duration-200" />
-                  </div>
                 </div>
-              ))}
+
+                <p className="text-[10px] text-slate-550 leading-relaxed italic">
+                  * Dynamic ledger balances compile live from all joint groups, individual settlements, and expense splits.
+                </p>
+              </div>
             </div>
-          )}
+
+            {/* Premium CTA Button */}
+            <div className="bg-gradient-to-r from-indigo-950/20 to-indigo-900/5 border border-dashed border-indigo-900/20 rounded-3xl p-6 text-center">
+              <p className="text-slate-400 text-xs mb-4 leading-relaxed">
+                Log shared travel bills, dining outings, or apartment rent splits.
+              </p>
+              <button
+                onClick={() => setIsModalOpen(true)}
+                className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-[#0d0c0b] font-black px-5 py-4 rounded-2xl shadow-lg hover:shadow-indigo-600/10 hover:-translate-y-0.5 active:translate-y-0 transition-all cursor-pointer text-xs uppercase tracking-wider"
+              >
+                <Plus className="w-4 h-4 stroke-[3]" />
+                <span>Open New Ledger</span>
+              </button>
+            </div>
+          </div>
+
+          {/* RIGHT COLUMN: Active Ledgers (7 cols) */}
+          <div className="lg:col-span-7 space-y-6">
+            {/* Header controls & stats */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-indigo-900/10">
+              <h3 className="text-xl font-serif font-black tracking-wide flex items-center gap-2">
+                <Users className="w-5 h-5 text-indigo-400" />
+                <span>Active Ledgers ({groups.length})</span>
+              </h3>
+
+              {/* Minimal Search Bar */}
+              <div className="relative w-full sm:w-64">
+                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                <input
+                  type="text"
+                  placeholder="Filter by name..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full bg-[#141312] border border-indigo-900/10 rounded-xl pl-9 pr-4 py-2.5 text-xs text-[#f7f4f0] placeholder-slate-550 focus:outline-none focus:border-indigo-650 transition-all font-semibold"
+                />
+              </div>
+            </div>
+
+            {isLoading ? (
+              <div className="flex flex-col items-center justify-center py-24 bg-[#141312]/20 border border-indigo-900/5 rounded-3xl backdrop-blur-sm">
+                <Loader2 className="w-8 h-8 animate-spin text-indigo-550 mb-3" />
+                <p className="text-slate-500 text-xs font-bold uppercase tracking-widest">Loading ledger data...</p>
+              </div>
+            ) : filteredGroups.length === 0 ? (
+              <div className="text-center py-20 bg-[#141312]/10 border border-dashed border-indigo-900/15 rounded-3xl px-6">
+                <Users className="w-12 h-12 text-indigo-950 mx-auto mb-4" />
+                <h4 className="text-slate-350 font-bold text-base font-serif">No matching records</h4>
+                <p className="text-slate-550 text-xs max-w-xs mx-auto mt-2 leading-relaxed">
+                  {searchQuery ? "Try refining your search text or open a new ledger group to get started." : "Create your first group to start logging dynamic splits."}
+                </p>
+                {!searchQuery && (
+                  <button
+                    onClick={() => setIsModalOpen(true)}
+                    className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-[#0d0c0b] font-black px-5 py-3.5 rounded-xl transition-all cursor-pointer text-xs mt-6 uppercase tracking-wider"
+                  >
+                    <Plus className="w-3.5 h-3.5 stroke-[3]" />
+                    <span>Create Group</span>
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {filteredGroups.map((group) => (
+                  <div
+                    key={group.id}
+                    onClick={() => navigate(`/groups/${group.id}`)}
+                    onMouseMove={handleMouseMove}
+                    style={{
+                      '--mouse-x': `${mouseCoords.x}px`,
+                      '--mouse-y': `${mouseCoords.y}px`
+                    } as React.CSSProperties}
+                    className="premium-glow-card rounded-2xl p-6 flex flex-col justify-between cursor-pointer border border-[#141312] bg-[#141312]/40 hover:bg-[#141312]/80 group h-48 relative"
+                  >
+                    {/* Visual details */}
+                    <div className="space-y-4 relative z-10">
+                      <div className="flex justify-between items-start">
+                        <div className="w-10 h-10 bg-indigo-950/60 border border-indigo-900/30 text-indigo-400 rounded-xl flex items-center justify-center font-serif font-black text-lg shadow-inner">
+                          {group.name.charAt(0).toUpperCase()}
+                        </div>
+                        <span className="text-[8px] text-indigo-400 bg-indigo-950/40 border border-indigo-900/30 px-2.5 py-0.5 rounded-md font-bold uppercase tracking-widest">
+                          {group.role}
+                        </span>
+                      </div>
+                      
+                      <div>
+                        <h4 className="font-bold text-slate-100 group-hover:text-indigo-400 transition-colors text-base font-serif truncate">
+                          {group.name}
+                        </h4>
+                        <p className="text-slate-550 text-[10px] flex items-center gap-1 mt-1 font-semibold">
+                          <Users className="w-3 h-3 text-indigo-500/60" />
+                          <span>{group.memberCount} member{group.memberCount !== 1 ? 's' : ''}</span>
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between border-t border-indigo-900/10 pt-3 relative z-10 text-[9px]">
+                      <span className="text-slate-500 flex items-center gap-1 font-semibold">
+                        <Calendar className="w-3 h-3" />
+                        <span>Opened {new Date(group.joinedAt).toLocaleDateString(undefined, { month: 'short', year: 'numeric' })}</span>
+                      </span>
+                      <div className="flex items-center gap-1 text-slate-400 group-hover:text-indigo-400 transition-all font-bold uppercase tracking-wider">
+                        <span>Ledger</span>
+                        <ArrowRight className="w-3 h-3 transform group-hover:translate-x-0.5 transition-transform" />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </main>
 
-      {/* Create Group Modal (Scale 95->100 & Fade) */}
+      {/* Create Group Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
           <div 
@@ -257,23 +313,25 @@ export const GroupsPage = () => {
               setIsModalOpen(false);
               setNewGroupName('');
             }}
-            className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm"
+            className="absolute inset-0 bg-[#0d0c0b]/85 backdrop-blur-sm"
           />
-          <div className="relative w-full max-w-md bg-slate-900 border border-slate-800/80 rounded-2xl p-6 shadow-2xl z-10 animate-in fade-in zoom-in-95 duration-150 glass-surface">
-            <h3 className="text-xl font-bold text-slate-50 mb-2">Create New Group</h3>
-            <p className="text-slate-400 text-xs mb-6 leading-relaxed">Assign a name for your expense group. You can immediately invite members on the dashboard page.</p>
+          <div className="relative w-full max-w-md bg-[#141312] border border-indigo-900/15 rounded-3xl p-8 shadow-2xl z-10 animate-in fade-in zoom-in-95 duration-150 glass-surface">
+            <h3 className="text-2xl font-serif font-black text-[#f7f4f0] mb-2">Create New Ledger</h3>
+            <p className="text-slate-400 text-xs mb-6 leading-relaxed">
+              Open a new balance ledger sheet. You can immediately invite members, record bills, and settle debts.
+            </p>
 
             <div className="space-y-4">
               <div>
-                <label className="block text-slate-400 text-[10px] font-bold uppercase tracking-wider mb-2">
-                  Group Name
+                <label className="block text-slate-500 text-[9px] font-bold uppercase tracking-widest mb-2">
+                  Ledger Group Name
                 </label>
                 <input
                   type="text"
                   value={newGroupName}
                   onChange={(e) => setNewGroupName(e.target.value)}
-                  placeholder="e.g. Ski Trip 2026"
-                  className="w-full bg-slate-800/60 border border-slate-700 rounded-xl px-4 py-3 text-slate-100 placeholder-slate-550 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent transition-all text-sm font-semibold"
+                  placeholder="e.g. Ski Trip 2026 or Shared Apartment"
+                  className="w-full bg-[#0d0c0b]/60 border border-indigo-900/10 rounded-xl px-4 py-3.5 text-[#f7f4f0] placeholder-slate-650 focus:outline-none focus:border-indigo-650 transition-all text-sm font-semibold"
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') handleCreateGroup();
                   }}
@@ -282,28 +340,28 @@ export const GroupsPage = () => {
               </div>
             </div>
 
-            <div className="mt-8 flex justify-end gap-3">
+            <div className="mt-8 flex justify-end gap-3 text-xs">
               <button
                 onClick={() => {
                   setIsModalOpen(false);
                   setNewGroupName('');
                 }}
-                className="px-4.5 py-2.5 bg-slate-800 hover:bg-slate-750 text-slate-300 font-bold rounded-xl transition-all cursor-pointer text-xs"
+                className="px-5 py-3 bg-[#0d0c0b] hover:bg-slate-900 text-slate-455 hover:text-slate-200 font-bold rounded-xl transition-all cursor-pointer uppercase tracking-wider"
               >
                 Cancel
               </button>
               <button
                 onClick={handleCreateGroup}
                 disabled={isCreating}
-                className="flex items-center gap-1.5 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl shadow-lg shadow-indigo-600/10 hover:shadow-indigo-600/20 transition-all cursor-pointer text-xs disabled:opacity-50"
+                className="flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-[#0d0c0b] font-black rounded-xl shadow-lg transition-all cursor-pointer disabled:opacity-50 uppercase tracking-wider"
               >
                 {isCreating ? (
                   <>
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    <span>Creating...</span>
+                    <span>Opening...</span>
                   </>
                 ) : (
-                  <span>Create Group</span>
+                  <span>Open Ledger</span>
                 )}
               </button>
             </div>

@@ -1,28 +1,29 @@
-# 💸 Spreetail — Peer-to-Peer Expense Tracker & Debt Settlement Platform
+# 💸 Spreetail — Premium Peer-to-Peer Expense Ledger
+### Developed by **Simona Singh**
 
-Spreetail is a premium, production-grade peer-to-peer expense tracking and debt settlement application modeled after the core features of Splitwise. Built with a robust client-server monorepo architecture, this application supports dynamic multi-mode splitting (Equal, Unequal, Percentages, Shares), intelligent **Greedy Debt Minimization** to optimize transactions, real-time WebSocket comment threads, and instant or deferred payment settlements badged with multiple payment methods.
+Spreetail is a premium, production-grade peer-to-peer expense tracking and debt settlement application modeled after the core features of Splitwise. Built with a robust client-server monorepo architecture, this application supports dynamic multi-mode splitting (Equal, Unequal, Percentages, Shares), intelligent **Greedy Debt Minimization** to optimize transactions, real-time WebSocket comment threads per expense, and instant or deferred payment settlements badged with multiple payment methods (Venmo, UPI, Bank Transfer, PayPal, Cash, Credit Card). Designed with a striking, custom editorial off-black and champagne-gold aesthetic, Spreetail offers a highly intuitive split-screen dashboard workspace that allows roommates, travel companions, and event organizers to easily balance and settle debts.
 
 ---
 
-## 🔗 Production Links
+## 🔗 Live Deployments
 
-- **Live Demo (Frontend)**: [https://spreetail.vercel.app](https://spreetail.vercel.app)
-- **Live API (Backend)**: [https://spreetail-backend.up.railway.app](https://spreetail-backend.up.railway.app)
+- **Live Demo (Client)**: [https://spreetail.vercel.app](https://spreetail.vercel.app)
+- **Live API (Server)**: [https://spreetail-backend.up.railway.app](https://spreetail-backend.up.railway.app)
 
 ---
 
 ## 🤖 AI Collaboration Details
 
 - **AI Tool Used**: Claude (Anthropic) via [claude.ai](https://claude.ai)
-- **Role**: Co-pilot developer assisting in architectural design, backend REST/Websocket coding, database schema definition, and React styling adjustments.
+- **Collaboration Role**: Co-pilot developer assisting in architectural layout planning, database schemas, TypeScript validations, and Tailwind UI theme designs.
 
 ---
 
-## 🛠️ Tech Stack
+## 🛠️ Tech Stack Reference
 
 | Layer | Technologies | Role / Feature |
 | :--- | :--- | :--- |
-| **Frontend** | React (Vite + TS) | Client-side application, Tailwind CSS, Zustand, React Query |
+| **Frontend** | React (Vite + TypeScript) | Client-side application, Tailwind CSS, Zustand, React Query |
 | **Backend** | Node.js + Express | REST APIs, Socket.io integration |
 | **Database** | PostgreSQL | Relational storage for users, groups, splits, settlements, and messages |
 | **ORM** | Prisma | Schema mapping and database migrations |
@@ -46,7 +47,7 @@ cd Spreetail
 cd backend
 npm install
 
-# Install frontend dependencies (in a new terminal / split)
+# Install frontend dependencies (in a new terminal tab/session)
 cd ../frontend
 npm install
 ```
@@ -99,9 +100,9 @@ npm run dev
 | :--- | :--- | :--- |
 | `PORT` | Backend | Port number for Express server to bind to (e.g., `3000`) |
 | `DATABASE_URL` | Backend | Connection string to PostgreSQL instance |
-| `JWT_ACCESS_SECRET`| Backend | HMAC-SHA256 signature key for short-lived access JWTs |
-| `JWT_REFRESH_SECRET`| Backend | HMAC-SHA256 signature key for long-lived session refresh tokens |
-| `FRONTEND_URL` | Backend | Target origin for CORS validation checks (e.g. Vercel client URL) |
+| `JWT_ACCESS_SECRET`| Backend | Signature key for short-lived access JWTs |
+| `JWT_REFRESH_SECRET`| Backend | Signature key for long-lived session refresh tokens |
+| `FRONTEND_URL` | Backend | Target origin for CORS validation checks |
 | `NODE_ENV` | Backend | Current environment tier (`development` or `production`) |
 | `VITE_API_URL` | Frontend | Target API server base URL for HTTP endpoints |
 | `VITE_SOCKET_URL` | Frontend | Target API server base URL for WebSocket gateway |
@@ -114,24 +115,3 @@ npm run dev
 2. **Database Cents Safe Accuracy**: Relies on Prisma-mapped `Decimal` datatypes for split shares and expense amounts instead of binary floats, preventing cumulative fraction arithmetic errors.
 3. **Automated Client Refresh Token Rotation**: Implemented database-backed token validation mapped to HttpOnly browser cookies. Old refresh tokens are rotated and destroyed upon access refreshes, preventing replay attacks.
 4. **Formless Component Controls**: Adheres to modern React design patterns by utilizing Zustand and click triggers for forms, preventing browser refresh state losses.
-
----
-
-## 🎨 Visual Tour (UI & UX)
-
-### 🏠 Dashboard & Group Standing
-![Dashboard](docs/screenshots/dashboard.png)
-
-### 👥 Group Details (Empty & Active State)
-| Empty Group Detail | Group with Active Expenses |
-| :---: | :---: |
-| ![Empty Group Detail](docs/screenshots/group_detail_empty.png) | ![Active Group Detail](docs/screenshots/group_detail_with_expense.png) |
-
-### ⚡ Create Expense Wizard (5-Step Flow)
-| Step 1: Expense Details | Step 2: Split Method |
-| :---: | :---: |
-| ![Details](docs/screenshots/expense_wizard_details.png) | ![Split Method](docs/screenshots/expense_wizard_split_method.png) |
-
-| Step 4: Pay Now vs Pay Later | Step 5: Review & Confirm |
-| :---: | :---: |
-| ![Preference](docs/screenshots/expense_wizard_preference.png) | ![Confirm](docs/screenshots/expense_wizard_confirm.png) |

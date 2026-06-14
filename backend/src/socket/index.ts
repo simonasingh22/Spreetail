@@ -9,27 +9,29 @@ export const initSocket = (server: HttpServer) => {
   const io = new Server(server, {
     path: process.env.SOCKET_PATH || '/socket.io',
     cors: {
-      origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+      origin: process.env.CORS_ORIGIN || process.env.FRONTEND_URL || 'http://localhost:5173',
       credentials: true
     }
   });
 
-  // Handshake authentication middleware
   io.use((socket, next) => {
     try {
-      const tokenString = socket.handshake.auth?.token || socket.handshake.headers['authorization'];
-      
-      if (!tokenString) {
+      const tokenString =
+        socket.handshake.auth?.token || socket.handshake.headers['authorization'];
+
+      if (!tokenString || typeof tokenString !== 'string') {
         return next(new Error('Authentication error: Token is required'));
       }
 
-      // Handle Bearer prefix if present
-      const token = tokenString.startsWith('Bearer ') ? tokenString.slice(7) : tokenString;
+      const token = tokenString.startsWith('Bearer ')
+        ? tokenString.slice(7)
+        : tokenString;
+
       const decoded = verifyAccessToken(token);
 
       socket.data.userId = decoded.userId;
       socket.data.email = decoded.email;
-      
+
       next();
     } catch (err) {
       console.error('Socket connection authentication failed:', err);
@@ -40,10 +42,10 @@ export const initSocket = (server: HttpServer) => {
   io.on('connection', (socket) => {
     console.log(`Socket client connected: ${socket.id} (user: ${socket.data.userId})`);
 
-    // Event: join_expense
     socket.on('join_expense', async ({ expenseId }) => {
       try {
         const userId = socket.data.userId;
+
         if (!userId) {
           socket.emit('error', { message: 'Unauthorized: User ID missing' });
           return;
@@ -54,7 +56,6 @@ export const initSocket = (server: HttpServer) => {
           return;
         }
 
-        // 1. Verify expense exists
         const expense = await prisma.expense.findUnique({
           where: { id: expenseId },
           select: { groupId: true, deletedAt: true }
@@ -65,12 +66,11 @@ export const initSocket = (server: HttpServer) => {
           return;
         }
 
-        // 2. Verify user is a member of the group
         const member = await prisma.groupMember.findUnique({
           where: {
             groupId_userId: {
               groupId: expense.groupId,
-              userId: userId
+              userId
             }
           }
         });
@@ -80,9 +80,9 @@ export const initSocket = (server: HttpServer) => {
           return;
         }
 
-        // 3. Join the room
         const roomName = `expense:${expenseId}`;
         socket.join(roomName);
+
         console.log(`Socket ${socket.id} successfully joined room ${roomName}`);
         socket.emit('joined_room', { expenseId });
       } catch (err: any) {
@@ -91,10 +91,10 @@ export const initSocket = (server: HttpServer) => {
       }
     });
 
-    // Event: send_message
     socket.on('send_message', async ({ expenseId, content }) => {
       try {
         const userId = socket.data.userId;
+
         if (!userId) {
           socket.emit('error', { message: 'Unauthorized: User ID missing' });
           return;
@@ -115,7 +115,6 @@ export const initSocket = (server: HttpServer) => {
           return;
         }
 
-        // 1. Verify expense exists and is active
         const expense = await prisma.expense.findUnique({
           where: { id: expenseId },
           select: { groupId: true, deletedAt: true }
@@ -126,12 +125,11 @@ export const initSocket = (server: HttpServer) => {
           return;
         }
 
-        // 2. Verify sender is a member of the group
         const member = await prisma.groupMember.findUnique({
           where: {
             groupId_userId: {
               groupId: expense.groupId,
-              userId: userId
+              userId
             }
           },
           include: {
@@ -144,7 +142,6 @@ export const initSocket = (server: HttpServer) => {
           return;
         }
 
-        // 3. Save message to database
         const message = await prisma.chatMessage.create({
           data: {
             expenseId,
@@ -156,8 +153,8 @@ export const initSocket = (server: HttpServer) => {
           }
         });
 
-        // 4. Emit new_message to all clients in the expense room
         const roomName = `expense:${expenseId}`;
+
         io.to(roomName).emit('new_message', {
           id: message.id,
           expenseId: message.expenseId,

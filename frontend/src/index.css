@@ -10,8 +10,8 @@
     padding: 0;
     width: 100%;
     height: 100%;
-    background-color: #020617; /* slate-950 */
-    color: #f1f5f9; /* slate-100 */
+    background-color: #0d0c0b; /* slate-950 (warm off-black) */
+    color: #f7f4f0; /* slate-100 (cream) */
     font-family: 'Plus Jakarta Sans', sans-serif;
     scroll-behavior: smooth;
   }
@@ -28,25 +28,25 @@
 }
 
 ::-webkit-scrollbar-track {
-  background: #090d1f;
+  background: #0d0c0b;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #1e293b;
+  background: #2c2a27;
   border-radius: 9999px;
-  border: 1px solid #090d1f;
+  border: 1px solid #0d0c0b;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #312e81; /* indigo-900 */
+  background: #c5a880; /* indigo-600 (champagne gold) */
 }
 
 /* Glassmorphism Surface Utility */
 .glass-surface {
-  background: rgba(15, 23, 42, 0.65);
+  background: rgba(20, 19, 18, 0.75);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(197, 168, 128, 0.08);
 }
 
 /* Interactive Card Glow Effect */
@@ -54,8 +54,8 @@
   position: relative;
   overflow: hidden;
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  border: 1px solid rgba(99, 102, 241, 0.08);
-  background: linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(30, 41, 59, 0.4) 100%);
+  border: 1px solid rgba(197, 168, 128, 0.06);
+  background: linear-gradient(135deg, rgba(20, 19, 18, 0.95) 0%, rgba(44, 42, 39, 0.45) 100%);
 }
 
 .premium-glow-card::before {
@@ -65,7 +65,7 @@
   left: 0;
   width: 100%;
   height: 100%;
-  background: radial-gradient(800px circle at var(--mouse-x, 0) var(--mouse-y, 0), rgba(99, 102, 241, 0.06), transparent 40%);
+  background: radial-gradient(800px circle at var(--mouse-x, 0) var(--mouse-y, 0), rgba(197, 168, 128, 0.06), transparent 40%);
   z-index: 1;
   pointer-events: none;
   opacity: 0;
@@ -78,8 +78,8 @@
 
 .premium-glow-card:hover {
   transform: translateY(-2px);
-  border-color: rgba(99, 102, 241, 0.25);
-  box-shadow: 0 12px 30px -10px rgba(99, 102, 241, 0.15);
+  border-color: rgba(197, 168, 128, 0.25);
+  box-shadow: 0 12px 30px -10px rgba(197, 168, 128, 0.12);
 }
 
 /* Floating Ambient Blobs Animation */
