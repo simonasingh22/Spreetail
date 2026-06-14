@@ -33,11 +33,16 @@ export const useExpenseChat = (expenseId: string) => {
 
     const socketUrl = import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_URL || 'http://localhost:3000';
     
+    // Determine path dynamically for reverse proxies (like Vercel Services)
+    const isVercelService = socketUrl.includes('/_/backend');
+    const cleanSocketUrl = isVercelService ? socketUrl.replace('/_/backend', '') : socketUrl;
+    
     // Connect socket
-    const socket = io(socketUrl, {
+    const socket = io(cleanSocketUrl, {
       auth: {
         token: accessToken
-      }
+      },
+      ...(isVercelService ? { path: '/_/backend/socket.io' } : {})
     });
 
     socketRef.current = socket;

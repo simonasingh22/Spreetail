@@ -7,6 +7,7 @@ const prisma = new PrismaClient();
 
 export const initSocket = (server: HttpServer) => {
   const io = new Server(server, {
+    path: process.env.SOCKET_PATH || '/socket.io',
     cors: {
       origin: process.env.FRONTEND_URL || 'http://localhost:5173',
       credentials: true
