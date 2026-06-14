@@ -1,0 +1,24 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Production build outputs
+dist/
+**/dist/
+build/
+**/build/
+
+# Local env credentials
+.env
+**/.env
+
+# Temporary Gemini/Agent system files
+.gemini/
+**/.gemini/
+*.log
+**/*.log
+
+# OS & Editor configurations
+.DS_Store
+.vscode/
+.idea/
