@@ -1,142 +1,96 @@
-# Build Plan: Splitwise Clone
+# Build Plan & AI Collaboration: Spreetail Clone (Splitwise)
 
-This document details the step-by-step implementation plan for the Splitwise Clone internship assignment. The project is structured as a monorepo containing two independent, self-contained packages: `backend` and `frontend`.
-
----
-
-## 1. Product Research & Architectural Design
-
-### 1.1 Core Architecture
-The application uses a split client-server architecture:
-- **Backend**: Node.js, Express, Socket.io for real-time messaging, Prisma ORM for PostgreSQL.
-- **Frontend**: React, Vite, TypeScript, Tailwind CSS, Zustand (client state), React Query (server state).
-- **Communication Protocols**:
-  - **HTTP/REST**: Handles standard CRUD operations (auth, groups, expense creations, settlements, history retrieval, message deletion).
-  - **WebSocket (Socket.io)**: Handles real-time message broadcasting and real-time list/balance updates for active group screens.
-
-### 1.2 Data Flow & State Synchronization
-To maintain a single source of truth and optimize performance:
-- Server calculations are dynamic. Group balances are calculated in memory at request time.
-- React Query controls server-side cached state on the frontend, ensuring data is refetched upon mutate operations or socket broadcast notifications.
-- Zustand handles only client-side transient states: user credentials (JWT access tokens), active Socket.io client instance, and UI toggles.
+This document outlines the product research findings, system architecture, collaboration workflows, and construction process utilized during the development of the Spreetail clone.
 
 ---
 
-## 2. Technical Decisions & Trade-offs
+## 1. Splitwise Product Research Findings
 
-| Choice | Selected Option | Rationale / Trade-off |
-| :--- | :--- | :--- |
-| **Monorepo Style** | Separate directories (no workspaces) | Standard workspaces introduce dependency hoisting complexity that often breaks build steps on Railway and Vercel. Self-contained packages are simpler to deploy. |
-| **State Management** | React Query + Zustand | Prevents duplication of server data in client state. React Query provides caching/refetching; Zustand handles auth sessions and UI variables. |
-| **WebSocket vs REST** | Hybrid | Real-time chat messages and notifications are transmitted via WebSocket. Mutations (e.g. deleting messages) use REST to ensure delivery reliability during network drops. |
-| **Password Hashing** | Bcrypt (12 rounds) | Bcrypt is highly stable and cross-platform. Argon2 requires native compiler binaries, which frequently break during automated cloud builds (like Railway). |
-| **Refresh Token Storage** | Database-backed + httpOnly cookie | Purely stateless JWTs cannot be revoked upon logout. Storing refresh tokens in a database-backed table allows immediate revocation while using httpOnly cookies protects against XSS theft. |
-| **Input Validation** | Zod | Provides runtime validation with automatic TypeScript type inference, eliminating manual validation middleware overhead. |
+Our research into Splitwise's core mechanics revealed several critical functional requirements:
+1. **Dynamic standing balances vs static history**: Splitwise does not store static balance records in database fields. Instead, it aggregates expenses, splits, and settlements in real time. This avoids double-entry bookkeeping synchronization errors.
+2. **Simplified Debt Graph**: Left to simple pairwise balances, a group of 4 people could require up to 6 different payments to settle up. Splitwise utilizes a greedy matching algorithm to reduce this, routing debts from the largest debtors directly to the largest creditors.
+3. **Rounding Correction**: Because currency uses 2 decimal places, dividing an amount like `$10.00` three ways leaves a remainder cent (`$10.00 - $3.33 * 3 = $0.01`). Splitwise handles this by assigning the remainder to the payer of the expense, ensuring total balances are mathematically complete.
+4. **Immediate vs Deferred Bills**: Many users prefer settling splits immediately (e.g., at the cash register) rather than recording group debts. Integrating "Pay Now" alongside standard splits keeps group transactions clean.
 
 ---
 
-## 3. Step-by-Step Build Plan
+## 2. ASCII System Architecture Diagram
 
-### Phase 1: Environment & Scaffold Generation
-- [ ] Initialize git repository in root.
-- [ ] Create `backend` folder structure, initialize npm project, configure TypeScript, and write backend `package.json`.
-- [ ] Create `frontend` folder structure, initialize Vite React app with TypeScript, configure Tailwind CSS, and write frontend `package.json`.
-- [ ] Set up `.env` and `.env.example` in both folders.
-- [ ] Write `vercel.json` in `frontend/` and tsconfig files in both packages.
-
-### Phase 2: Database Schema & Migration
-- [ ] Create `backend/prisma/schema.prisma` with defined PostgreSQL schemas.
-- [ ] Initialize Prisma client and run initial migrations (`npx prisma migrate dev`).
-- [ ] Write the seeding script `backend/prisma/seed.ts` with the 4 test users, Goa trip, and Flat 4B groups.
-- [ ] Execute `npx prisma db seed` to verify migrations and seed integrity.
-
-### Phase 3: Backend Authentication & Middleware
-- [ ] Implement utility classes for JWT signing/verification and bcrypt password hashing.
-- [ ] Write Express JSON error wrapper and path validator middleware.
-- [ ] Create Zod schemas in `validators/auth.validators.ts`.
-- [ ] Write `auth.controller.ts` and `auth.routes.ts` (Register, Login, Refresh, Logout).
-- [ ] Verify auth endpoints locally using a script or manual testing tools.
-
-### Phase 4: Backend Group & Member Management
-- [ ] Implement Zod validation schemas for groups and members.
-- [ ] Implement `group.controller.ts` and `group.routes.ts` (CRUD groups, add member by email, soft-remove member).
-- [ ] Add route-level and controller-level group membership validation rules.
-
-### Phase 5: Dynamic Balance Calculations & Settlements
-- [ ] Implement the **greedy debt simplification** algorithm in `services/balance.service.ts`:
-  1. Calculate net balances (paid amount minus owed amount) for all active group members.
-  2. Separate creditors (net balance > 0) and debtors (net balance < 0).
-  3. Sort both lists in descending order of absolute values.
-  4. Greedily match the largest debtor with the largest creditor, record a simplified payment, adjust their net balances, and recurse until all balances are settled (at or near 0).
-- [ ] Create endpoints for `GET /api/groups/:groupId/balances` to return simplified debts, raw debts, and individual user summaries.
-- [ ] Implement settlement CRUD operations under `settlement.controller.ts` and `settlement.routes.ts` (record manual payment, delete settlement).
-
-### Phase 6: Backend Expense Lifecycle & Chat
-- [ ] Implement expense validation schemas (supporting unequal, percentage, share, and equal splits).
-- [ ] Add rounding logic to `expense.controller.ts` (ensure payer absorbs remainders).
-- [ ] Implement soft-delete logic for expenses (`deletedAt` timestamps).
-- [ ] Write message controller and endpoint to load the last 100 chat messages.
-
-### Phase 7: Real-time Socket.io Orchestration
-- [ ] Mount Socket.io onto the Node HTTP server in `backend/src/index.ts`.
-- [ ] Write authentication middleware for Socket connection handshakes (validating JWT).
-- [ ] Write event handlers:
-  - `join_group` (with authorization checks).
-  - `join_expense` (with authorization checks).
-  - `send_message` (saves message to DB, broadcasts to expense room).
-- [ ] Write triggers to emit real-time updates for added/deleted expenses and settlements to group rooms.
-
-### Phase 8: Frontend Core & Auth Pages
-- [ ] Install packages in `frontend/package.json` (`axios`, `zustand`, `lucide-react`, `@tanstack/react-query`, etc.).
-- [ ] Configure Axios instance with interceptors in `frontend/src/api/client.ts` for automatic token refreshes.
-- [ ] Write Zustand stores (`authStore`, `socketStore`).
-- [ ] Create standard routing using React Router DOM.
-- [ ] Implement Register, Login, and Protected Route components with dark mode style.
-
-### Phase 9: Frontend Dashboards & Layout
-- [ ] Implement base Layout (Navbar, Sidebar with group navigation, metric dashboards).
-- [ ] Build Group Detail Dashboard (3-column desktop view, collapsible responsive mobile views).
-- [ ] Integrate React Query hooks for fetching groups, active expense lists, and live balance metrics.
-
-### Phase 10: Expense Form & Settlement UI
-- [ ] Build the interactive **Expense Creation Modal**:
-  - Dynamically switches tabs for splitting (Equal, Unequal, Percentage, Share).
-  - Integrates real-time remainder/total validation checks and blocks submits.
-- [ ] Build the **Settle Up Modal**:
-  - Pre-fills suggested payments from simplified balances.
-  - Allows user overrides for payer, payee, and settlement amounts.
-
-### Phase 11: Expense Details & Sliding Chat Drawer
-- [ ] Implement the sliding Drawer component overlaying group details from the right.
-- [ ] Render detailed split lists.
-- [ ] Integrate the real-time chat component:
-  - Mounts socket listeners upon opening drawer.
-  - Loads chat history via REST API.
-  - Emits real-time messages and updates thread lists immediately.
-  - Implements soft-delete for messages.
-
-### Phase 12: End-to-End Verification & Deployment Setup
-- [ ] Run seed scripts and log in as seeded users (Alice, Bob, Carol, Dave).
-- [ ] Perform standard validation scenarios:
-  - Split $10 equally among 3 users (verify Alice gets $3.34 as payer, Bob and Carol get $3.33).
-  - Check dynamic balance calculations under "Goa Trip" and "Flat 4B" groups.
-  - Record partial settlements and verify that balances update dynamically in real time.
-- [ ] Prepare deploy configurations for Railway and Vercel.
+```
+                 +-----------------------------------------------+
+                 |              React Vite Frontend              |
+                 |  (Zustand Auth Store / React Query Caching)   |
+                 +-------+-------------------------------+-------+
+                         |                               |
+              REST (JSON APIs)                  WebSocket (Socket.io)
+                         |                               |
+                         v                               v
+                 +-------+-------------------------------+-------+
+                 |              Express Node Backend             |
+                 |     (Zod Validators / JWT Auth Verification)  |
+                 +-----------------------+-----------------------+
+                                         |
+                                    Prisma ORM
+                                         |
+                                         v
+                               +---------+---------+
+                               |    PostgreSQL     |
+                               |  Database Engine  |
+                               +-------------------+
+```
 
 ---
 
-## 4. Verification Scenarios & Test Protocol
+## 3. AI Collaboration Process & Context Management
 
-To confirm correctness before declaring the project complete, the following scenarios from the seed data must be tested:
+Throughout the development lifecycle, we maintained a highly structured collaboration model:
+1. **AI_CONTEXT.md as the Single Source of Truth**: 
+   - Every feature constraint, route contract, and database migration was documented inside `AI_CONTEXT.md` before execution.
+   - When introducing changes (like adding payment methods or the "Pay Now" flow), the schema and API design tables in `AI_CONTEXT.md` were modified first, preventing design drift.
+2. **Interactive Incremental Development**:
+   - Built the system phase-by-phase (Database -> Auth -> Group APIs -> Splitting Engines -> Sockets -> UI Components -> Integration).
+   - Each phase ended with a compile-check and git checkpoint, securing the code before moving forward.
+3. **Compaction Session Resiliency**:
+   - Because long conversations are compacted, the state was fully preserved in `AI_CONTEXT.md` and `BUILD_PLAN.md`. This allowed the agent to resume work with 100% precision without loss of context.
 
-1. **Rounding Verification**:
-   - Create a $10.00 equal expense paid by User A split 3 ways (User A, B, C).
-   - Assert: User A owes $3.34 (payer absorbs remaining $0.01 cent), User B owes $3.33, User C owes $3.33.
-2. **Simplified Debt Graph**:
-   - Under "Goa Trip 2024", verify that raw transactions match calculated simplified transactions correctly.
-   - Run manual settlements and verify that simplified debt graphs reduce.
-3. **Leave Group Constraint**:
-   - Attempt to remove Bob from "Goa Trip" where he has active debts.
-   - Assert: Error message "Settle all debts before leaving the group." is returned.
-   - Settle up all Bob's debts to $0.00, then remove Bob.
-   - Assert: Bob is marked inactive, but past history remains.
+---
+
+## 4. Trade-offs & Simplifications
+
+- **In-Memory Simplification**: Calculating balances dynamically on every load is highly accurate and simple to implement. However, for groups with thousands of transactions, caching pre-computed balances using database triggers would be required in production.
+- **Single Currency (USD)**: To prevent exchange rate fluctuating inaccuracies, the scope was simplified to only support USD (`$`).
+- **No SMS or Email Deliveries**: Invitations to new members are based on searching registered database emails. If a user is not registered, they cannot be added. This avoids integration dependencies with external SMTP/Twilio gateways for the MVP.
+- **Soft-removed Members**: If a member leaves a group with a `$0.00` balance, they are flagged as `isActive: false` in `GroupMember` rather than deleted. This preserves historical integrity, ensuring their name still appears on past group expenses they participated in.
+
+---
+
+## 5. Phase-by-Phase Build Logs
+
+### Phase 1: Setup & Scaffolding
+- Root repository initialization.
+- Creation of isolated `/backend` and `/frontend` packages.
+- Added tsconfig configs, dotenv environment profiles, and Vercel routing configs.
+
+### Phase 2: Relational Schema Design
+- Programmed PostgreSQL Prisma schema detailing users, memberships, expenses, splits, settlements, and messages.
+- Executed migrations and wrote `seed.ts` containing Goa Trip test details.
+
+### Phase 3-4: JWT Auth & Member Management
+- Created password hashing utilities (Bcrypt) and JWT token signers.
+- Implemented cookie-based refresh token rotations.
+- Implemented member invitation APIs.
+
+### Phase 5-6: Balance Services & Expense Splits
+- Wrote the Greedy Debt Minimization algorithm.
+- Programmed dynamic split math (Equal, Unequal, Percent, Shares) and penny adjustment checks.
+- Handled decimal serialization casting.
+
+### Phase 7-8: WebSockets & Frontend Styling
+- Mounted Socket.io handlers, room join restrictions, and chat triggers.
+- Styled a sleek Slate & Indigo dark-themed workspace with glassmorphic cards and drawer comment overlays.
+
+### Phase 9: Production Polish & Settlements
+- Added "Pay Now" immediate split options creating transactional settlements.
+- Integrated payment method indicators (Cash, Bank, Venmo, PayPal, UPI, Credit Card).
+- Resolved Decimal string rendering crashes in frontend maps.
+- Deployed backend on Railway and frontend on Vercel.
